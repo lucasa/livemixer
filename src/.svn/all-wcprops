@@ -1,0 +1,53 @@
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/site-broadcast-e-player/livemixer/!svn/ver/3/LiveMixer/src
+END
+LiveMixerManager.java
+K 25
+svn:wc:ra_dav:version-url
+V 81
+/site-broadcast-e-player/livemixer/!svn/ver/9/LiveMixer/src/LiveMixerManager.java
+END
+LiveMixer.java
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/site-broadcast-e-player/livemixer/!svn/ver/9/LiveMixer/src/LiveMixer.java
+END
+LiveMixerCommandLineClient.java
+K 25
+svn:wc:ra_dav:version-url
+V 91
+/site-broadcast-e-player/livemixer/!svn/ver/9/LiveMixer/src/LiveMixerCommandLineClient.java
+END
+LiveMixer_old.java
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/site-broadcast-e-player/livemixer/!svn/ver/9/LiveMixer/src/LiveMixer_old.java
+END
+IManager.java
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/site-broadcast-e-player/livemixer/!svn/ver/9/LiveMixer/src/IManager.java
+END
+Util.java
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/site-broadcast-e-player/livemixer/!svn/ver/9/LiveMixer/src/Util.java
+END
+XugglerLiveMixer.java
+K 25
+svn:wc:ra_dav:version-url
+V 81
+/site-broadcast-e-player/livemixer/!svn/ver/9/LiveMixer/src/XugglerLiveMixer.java
+END
+ExperimentalGstreamerLiveMixer.java
+K 25
+svn:wc:ra_dav:version-url
+V 95
+/site-broadcast-e-player/livemixer/!svn/ver/9/LiveMixer/src/ExperimentalGstreamerLiveMixer.java
+END

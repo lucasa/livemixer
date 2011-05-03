@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project default="create_run_jar" name="Create Runnable Jar for Project LiveMixer">
+    <!--this file was created by Eclipse Runnable JAR Export Wizard-->
+    <!--ANT 1.7 is required                                        -->
+    <target name="create_run_jar">
+        <jar destfile="/home/lucasa/livemixer.jar" filesetmanifest="mergewithoutmain">
+            <manifest>
+                <attribute name="Main-Class" value="LiveMixerManager"/>
+                <attribute name="Class-Path" value="."/>
+            </manifest>
+            <fileset dir="/home/lucasa/eclipse/workspace/livemixer/LiveMixer/bin"/>
+            <zipfileset excludes="META-INF/*.SF" src="/home/lucasa/eclipse/workspace/livemixer/LiveMixer/lib/gstreamer-java-1.4.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="/home/lucasa/eclipse/workspace/livemixer/LiveMixer/lib/jna-3.2.4.jar"/>
+        	<zipfileset excludes="META-INF/*.SF" src="/home/lucasa/eclipse/workspace/livemixer/LiveMixer/lib/xmlrpc-server-3.1.3.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="/home/lucasa/eclipse/workspace/livemixer/LiveMixer/lib/xmlrpc-common-3.1.3.jar"/>
+	    	<zipfileset excludes="META-INF/*.SF" src="/home/lucasa/eclipse/workspace/livemixer/LiveMixer/lib/xmlrpc-client-3.1.3.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="/home/lucasa/eclipse/workspace/livemixer/LiveMixer/lib/ws-commons-util-1.0.2.jar"/>
+        	<zipfileset excludes="META-INF/*.SF" src="/home/lucasa/eclipse/workspace/livemixer/LiveMixer/lib/commons-logging-1.1.jar"/>
+        </jar>
+    	<jar destfile="/home/lucasa/livemixer-console-client.jar" filesetmanifest="mergewithoutmain">
+            <manifest>
+                <attribute name="Main-Class" value="LiveMixerCommandLineClient"/>
+                <attribute name="Class-Path" value="."/>
+            </manifest>
+            <fileset dir="/home/lucasa/eclipse/workspace/livemixer/LiveMixer/bin"/>
+            <zipfileset excludes="META-INF/*.SF" src="/home/lucasa/eclipse/workspace/livemixer/LiveMixer/lib/gstreamer-java-1.4.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="/home/lucasa/eclipse/workspace/livemixer/LiveMixer/lib/jna-3.2.4.jar"/>
+        	<zipfileset excludes="META-INF/*.SF" src="/home/lucasa/eclipse/workspace/livemixer/LiveMixer/lib/xmlrpc-server-3.1.3.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="/home/lucasa/eclipse/workspace/livemixer/LiveMixer/lib/xmlrpc-common-3.1.3.jar"/>
+	    	<zipfileset excludes="META-INF/*.SF" src="/home/lucasa/eclipse/workspace/livemixer/LiveMixer/lib/xmlrpc-client-3.1.3.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="/home/lucasa/eclipse/workspace/livemixer/LiveMixer/lib/ws-commons-util-1.0.2.jar"/>
+        	<zipfileset excludes="META-INF/*.SF" src="/home/lucasa/eclipse/workspace/livemixer/LiveMixer/lib/commons-logging-1.1.jar"/>	
+        </jar>
+    </target>
+</project>
