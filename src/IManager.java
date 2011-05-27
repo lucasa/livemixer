@@ -35,4 +35,10 @@ public interface IManager {
 
 	public boolean removeInput(int id, int i);
 
+	public boolean recoverBackup(String path);
+
+	public boolean backup(String path);
+
+	public void shutdown();
+
 }

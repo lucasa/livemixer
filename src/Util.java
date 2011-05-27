@@ -40,10 +40,10 @@ public class Util {
 	 */
 	public static void kill9(Integer pid) {
 		try {
-		ProcessBuilder pb = new ProcessBuilder("kill", "-9", pid.toString());
-		pb.redirectErrorStream();
-		Process p = pb.start();
-		int code = p.waitFor();
+			ProcessBuilder pb = new ProcessBuilder("kill", "-9", pid.toString());
+			pb.redirectErrorStream();
+			Process p = pb.start();
+			p.waitFor();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

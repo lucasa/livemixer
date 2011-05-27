@@ -68,25 +68,27 @@ public class LiveMixerCommandLineClient {
 				System.out.println("Set volume of pipeline input - 4");
 				System.out.println("Add new pipeline input - 5");
 				System.out.println("Remove a pipeline input - 6");
-				System.out.println("Help - 9");
+				System.out.println("Backup pipelines to file - 7");
+				System.out.println("Recover pipelines from file - 8");
+				System.out.println("Shutdown deamon - 99");
 				System.out.print("Option: ");
 				option = scan.nextInt();
 				if (option == 0) {
 					break;
 				} else if (option == 1) {					
 					System.out
-							.print("Digit the parameters of the pipeline [format: name url_input_1 [url_input_n] url_output]: ");
+							.print("Digit the parameters of the pipeline [format: url_input_1 [url_input_n] url_output]: ");
 					if (scan.hasNext()) {
 						scan.nextLine();
 						String line = scan.nextLine();
 						if (line.contains(" ")) {
 							String[] params = line.split(" ");
-							String[] inputs = new String[params.length - 2];
+							String[] inputs = new String[params.length - 1];
 							for (int i = 0; i < inputs.length; i++) {
-								inputs[i] = params[i + 1];
+								inputs[i] = params[i];
 							}
 							String output = params[params.length - 1];
-							String name = params[0];
+							String name = output;
 							remote.getManager().createPipeline(name, inputs, output);
 							System.out.println("Pipeline created.");
 						}
@@ -109,7 +111,7 @@ public class LiveMixerCommandLineClient {
 					System.out.print("Digit the ID of the input: ");
 					int i = scan.nextInt();
 					System.out.print("Digit the new % volume [0 - 200]: ");
-					float v = scan.nextInt() / 100;
+					float v = scan.nextInt() / 100f;
 					boolean done = remote.getManager().setVolume(id, i, v);
 					if (done)
 						System.out.println("Pipeline configured.");
@@ -134,6 +136,25 @@ public class LiveMixerCommandLineClient {
 						System.out.println("Input removed.");
 					else
 						System.out.println("Input not removed.");
+				} else if (option == 7) {
+						System.out.print("Digit the file path to save backup: ");
+						String path = scan.next();
+						boolean done = remote.getManager().backup(path);
+						if (done)
+							System.out.println("Backup saved.");
+						else
+							System.out.println("Backup not saved.");
+				} else if (option == 8) {
+					System.out.print("Digit the file path to recover backup: ");
+					String path = scan.next();
+					boolean done = remote.getManager().recoverBackup(path);
+					if (done)
+						System.out.println("Backup recovered.");
+					else
+						System.out.println("Backup not recovered.");
+				} else if (option == 99) {
+					System.out.print("Going down...");
+					remote.getManager().shutdown();
 				}
 			} catch (Exception e) {
 				e.printStackTrace();

@@ -54,18 +54,17 @@ public class LiveMixer {
 
 	private int INDEX = 0;
 
-	public boolean DEBUG = true;
+	public boolean DEBUG = false;
 
-	public static boolean AUDIO_OUTPUT = false;
+	public boolean AUDIO_OUTPUT = false;
 
-	public static boolean FIFO_PIPE_OUTPUT = true;
+	public boolean FIFO_PIPE_OUTPUT = true;
 
 	private boolean FAKE_INPUT = false;
 
-	protected boolean AUTO_RECOVERY = false;
+	protected boolean AUTO_RECOVERY = true;
 
 	private boolean FFMPEG_OUPUT = true;
-	// private Map<String, Float> volumes = new HashMap<String, Float>();
 
 	private Map<String, Element> volumeElements = new HashMap<String, Element>();
 
@@ -77,17 +76,9 @@ public class LiveMixer {
 
 	private int OUTPUT_FREQ = 44100;
 
+	private int MP3_BITRATE = 96;
+
 	private String outputURL;
-
-	// private IMediaWriter writer;
-
-	private IContainer outContainer;
-
-	private IStreamCoder outStreamCoder;
-
-	// private int lastPos;
-
-	private OutputStream outputStream;
 
 	private File fileFifo;
 
@@ -99,6 +90,7 @@ public class LiveMixer {
 
 	private Map<String, Element> inputElements = new HashMap<String, Element>();
 
+	private String FFMPEG_PATH0 = "./ffmpeg";
 	private String FFMPEG_PATH1 = "/usr/local/bin/ffmpeg";
 	private String FFMPEG_PATH2 = "/usr/bin/ffmpeg";
 
@@ -120,20 +112,23 @@ public class LiveMixer {
 
 	protected int pidFFmpeg;
 
+	private boolean RUN = true;
+
 	public static void main(String[] args) throws InterruptedException {
 		if (args.length < 2)
 			throw new IllegalArgumentException(
 					"Parameters: input_file_or_url_1 [input_file_or_url_2] ... [input_file_or_url_N] output_file_or_url");
 
-		Gst.init("StreamAdder", new String[] { "--gst-debug=progressreport:1" });
-		// Gst.init("StreamAdder", new String[] { "--gst-debug-level=1" });
+		// Gst.init("StreamAdder", new String[] { "--gst-debug-level=1",
+		// "--gst-debug=progressreport:1" });
 
 		List<String> inputUrls = new ArrayList<String>();
 		for (int i = 0; i < args.length - 1; i++) {
-//			if (args[i].toLowerCase().equals("false") || args[i].toLowerCase().equals("true"))
-//				DEBUG = Boolean.valueOf(args[i]);
-//			else
-				inputUrls.add(args[i]);
+			// if (args[i].toLowerCase().equals("false") ||
+			// args[i].toLowerCase().equals("true"))
+			// DEBUG = Boolean.valueOf(args[i]);
+			// else
+			inputUrls.add(args[i]);
 		}
 
 		String outputUrl = args[args.length - 1];
@@ -148,22 +143,6 @@ public class LiveMixer {
 		}));
 
 		adder.pipe.debugToDotFile(Bin.DEBUG_GRAPH_SHOW_STATES, "livemixer.dot");
-
-//		String[] urls = new String[] { "rtmp://wowza01.dyb.fm/dyb/runningradio/media",
-//				"rtmp://wowza01.dyb.fm/teste/teste/media2", "rtmp://wowza01.dyb.fm/teste/teste/media1" };
-		
-		// Thread.sleep(5000);
-		// adder.pipe.setState(State.NULL);
-		// Thread.sleep(5000);
-		// adder.pipe.setState(State.PLAYING);
-
-		// for (int i = 0; i<Integer.MAX_VALUE ; i++) {
-		// String url = urls[i % urls.length];
-		// Thread.sleep(40000);
-		// adder.addInputURL(url);
-		// Thread.sleep(40000);
-		// adder.removeInput(url);
-		// }
 
 		Gst.main();
 	}
@@ -188,15 +167,10 @@ public class LiveMixer {
 	public void createPipeline() {
 		String config = "rate=" + OUTPUT_FREQ + ",channels=" + OUTPUT_CHANELS + ",depth=16";
 		pathFifo = "/tmp/" + outputURL.replace('/', '_') + "_" + config.replace(',', '_').replace('=', '_');
-		this.capsAudio = Caps.fromString("audio/x-raw-int," + config);// +
-																		// ";audio/x-raw-float,"
-																		// +
-																		// config);
-		// this.capsAudio = Caps.fromString("audio/x-raw-int," + config);
+		this.capsAudio = Caps.fromString("audio/x-raw-int," + config);
 		pipe = new Pipeline("Audio Mixer Pipeline");
 		try {
 			adder = ElementFactory.make("adder", "adder mixer");
-			// adder.set("latency", 5 * 1000);
 		} catch (Exception e) {
 		}
 		adder.connect(new PAD_REMOVED() {
@@ -230,7 +204,6 @@ public class LiveMixer {
 			fileFifo = new File(pathFifo);
 			try {
 				if (!fileFifo.exists()) {
-					// fileFifo.delete();
 					String command = "/usr/bin/mkfifo " + fileFifo.getAbsolutePath();
 					ProcessBuilder b = new ProcessBuilder("/bin/sh", "-c", command);
 					b.start().waitFor();
@@ -241,10 +214,10 @@ public class LiveMixer {
 
 			Element codecEnc = ElementFactory.make("lamemp3enc", "MP3 Encoder");
 			codecEnc.set("target", 1);
-			codecEnc.set("bitrate", 96);
+			codecEnc.set("bitrate", MP3_BITRATE);
 			codecEnc.set("cbr", true);
 			Element mux = ElementFactory.make("flvmux", "FLV Muxer");
-			// mux.set("streamable", true);
+			mux.set("streamable", true);
 
 			Element queue = ElementFactory.make("queue2", "Fifo Queue");
 			Element filesink = ElementFactory.make("filesink", "Fifo Sink");
@@ -264,11 +237,10 @@ public class LiveMixer {
 			capsfilterMp3.setCaps(Caps.fromString("audio/mpeg,rate=" + OUTPUT_FREQ + ",channels=" + OUTPUT_CHANELS));
 
 			pipe.addMany(queue, audiorate, audioconvert, capsfilter, codecEnc, capsfilterMp3, mux, filesink);
-			// pipe.addMany(queue, codecEnc, mux, filesink);
 			boolean linked = Element.linkMany(tee, audiorate, audioconvert, queue, capsfilter, codecEnc, capsfilterMp3,
 					mux, filesink);
-			System.out.println("File output linked: " + linked);
-			// Element.linkMany(tee, queue, codecEnc, mux, filesink);
+
+			debug("File output linked: " + linked);
 
 			if (FFMPEG_OUPUT)
 				startFFmpegProcess();
@@ -286,43 +258,6 @@ public class LiveMixer {
 	}
 
 	/**
-	 * @param pad
-	 */
-	// private void linkInput(final Pad pad) {
-	// String addedUrl = inputURLs.get(inputURLs.size() - 1);
-	// final Element newInput = inputElements.get(addedUrl);
-	//
-	// EVENT_PROBE probeListener = new EVENT_PROBE() {
-	// public boolean eventReceived(Pad pad, Event event) {
-	// String type = event.getStructure().toString();
-	// if (DEBUG)
-	// System.out.println("eventReceived: " + type);
-	// if (type.toLowerCase().indexOf("error") >= 0) {
-	// System.out.println("Error");
-	// return false;
-	// }
-	// return true;
-	// }
-	// };
-	// adder.getSrcPads().get(0).addEventProbe(probeListener);
-	// if (pipe.isPlaying()) {
-	// PadBlockCallback padBlockCallback = new PadBlockCallback() {
-	// public void callback(Pad cpad, boolean blocked, Pointer arg2) {
-	// if (!blocked)
-	// return;
-	//
-	// linkInputPad(pad, newInput);
-	//
-	// adder.getSrcPads().get(0).setBlockedAsync(false, this);
-	// adder.getSrcPads().get(0).setBlockedAsync(true, this);
-	// }
-	// };
-	// } else
-	// linkInputPad(pad, newInput);
-	//
-	// }
-
-	/**
 	 * @param outputURL
 	 */
 	public void startFFmpegProcess() {
@@ -338,7 +273,7 @@ public class LiveMixer {
 						e.printStackTrace();
 					} finally {
 						closeFFmpegProcess();
-						System.out.println("ffmpg closed!");
+						System.err.println("ffmpg closed!");
 					}
 				}
 			});
@@ -362,7 +297,9 @@ public class LiveMixer {
 	private Process executaFFmpeg(String outputURL, File fileFifo) {
 		String FFMPEG_PATH = "";
 
-		if (new File(FFMPEG_PATH1).exists() == true)
+		if (new File(FFMPEG_PATH0).exists() == true)
+			FFMPEG_PATH = FFMPEG_PATH0;
+		else if (new File(FFMPEG_PATH1).exists() == true)
 			FFMPEG_PATH = FFMPEG_PATH1;
 		else
 			FFMPEG_PATH = FFMPEG_PATH2;
@@ -370,12 +307,13 @@ public class LiveMixer {
 		String command = "/bin/cat " + fileFifo.getAbsolutePath() + " | " + FFMPEG_PATH
 				+ " -i - -re -vn -y -loglevel 0 -debug 0 -ac " + OUTPUT_CHANELS + " -ar " + OUTPUT_FREQ
 				+ " -acodec libmp3lame -f " + OUTPUT_FORMAT + " " + outputURL;
-		if (!DEBUG)
-			command += " 2>/dev/null";
-		else
-			command += " 2>" + fileFifo.getAbsolutePath() + "_log.log";
+		// if (!DEBUG)
+		command += " 2>/dev/null";
+		// else
+		// command += " 2>" + fileFifo.getAbsolutePath() + "_log.log";
 
-		System.out.println(command);
+		debug(command);
+
 		// TODO: só precisa instanciar 1 vez
 		ProcessBuilder b = new ProcessBuilder("/bin/sh", "-c", command);
 		Process processo = null;
@@ -384,8 +322,6 @@ public class LiveMixer {
 		} catch (IOException e1) {
 			e1.printStackTrace();
 		}
-		// outputStream = processo.getOutputStream();
-		// outputStream = new BufferedOutputStream(outputStream);
 		if (DEBUG) {
 			final InputStream error = processo.getErrorStream();
 			final InputStream in = processo.getInputStream();
@@ -394,18 +330,14 @@ public class LiveMixer {
 				public void run() {
 					try {
 						byte[] bserr = null;
-						try {
-							while (true) {
-								bserr = new byte[error.available()];
-								if (bserr.length > 0) {
-									error.read(bserr);
-									String error = new String(bserr);
-									System.out.println(error);
-								}
-								Thread.sleep(100);
+						while (RUN) {
+							bserr = new byte[error.available()];
+							if (bserr.length > 0) {
+								error.read(bserr);
+								String error = new String(bserr);
+								debug(error);
 							}
-						} catch (Exception e) {
-							e.printStackTrace();
+							Thread.sleep(100);
 						}
 					} catch (Exception e) {
 						e.printStackTrace();
@@ -418,18 +350,14 @@ public class LiveMixer {
 				public void run() {
 					try {
 						byte[] bin = null;
-						try {
-							while (true) {
-								bin = new byte[in.available()];
-								if (bin.length > 0) {
-									in.read(bin);
-									String sin = new String(bin);
-									System.out.println(sin);
-								}
-								Thread.sleep(100);
+						while (RUN) {
+							bin = new byte[in.available()];
+							if (bin.length > 0) {
+								in.read(bin);
+								String sin = new String(bin);
+								debug(sin);
 							}
-						} catch (Exception e) {
-							e.printStackTrace();
+							Thread.sleep(100);
 						}
 					} catch (Exception e) {
 						e.printStackTrace();
@@ -441,15 +369,15 @@ public class LiveMixer {
 		return processo;
 	}
 
-	public static void debug(String string) {
-		System.out.print("\n" + string);
+	public void debug(String string) {
+		if (DEBUG)
+			System.out.print("\n" + string);
 	}
 
 	private void addInput(String url) {
-
 		INDEX++;
 		int i = INDEX;
-		System.out.println("\n------------\naddInput[" + i + "]: " + url + "\n-------------\n");
+		System.out.println("\n------------\nAdding Input[" + i + "]: " + url + "\n-------------\n");
 
 		Bin input = null;
 
@@ -485,11 +413,11 @@ public class LiveMixer {
 		capsfilter.setCaps(capsAudio);
 
 		Element progressreport = ElementFactory.make("progressreport", "Progress Report" + i);
-		progressreport.set("update-freq", 5);
+		progressreport.set("update-freq", 30);
 
 		input.addMany(src, progressreport, conv, resample, volume);
 		boolean linked = Element.linkMany(conv, resample, progressreport, volume);
-		System.out.println("Input elements linked: " + linked);
+		debug("Input elements linked: " + linked);
 		input.addPad(new GhostPad("src", volume.getSrcPads().get(0)));
 
 		src.connect(new PAD_ADDED() {
@@ -503,38 +431,17 @@ public class LiveMixer {
 				Caps caps = pad.getCaps();
 				Structure struct = caps.getStructure(0);
 				if (struct.getName().startsWith("audio/")) {
-					System.out.println("Linking audio pad: " + struct.getName());
+					debug("Linking audio pad: " + struct.getName());
 					if (conv.getStaticPad("sink").getPeer() == null) {
 						PadLinkReturn linked = pad.link(conv.getStaticPad("sink"));
-						System.out.println("Uridecodebin linked " + linked);
+						debug("Uridecodebin linked " + linked);
 					}
 				} else if (struct.getName().startsWith("video/")) {
-					System.out.println("Linking video pad: " + struct.getName());
+					debug("Linking video pad: " + struct.getName());
 				} else {
-					System.out.println("Unknown pad [" + struct.getName() + "]");
+					debug("Unknown pad [" + struct.getName() + "]");
 				}
 			}
-			//
-			// public void newDecodedPad(Element elem, Pad pad, boolean last) {
-			// /* only link once */
-			// if (pad.isLinked()) {
-			// return;
-			// }
-			// /* check media type */
-			// Caps caps = pad.getCaps();
-			// Structure struct = caps.getStructure(0);
-			// if (struct.getName().startsWith("audio/")) {
-			// System.out.println("Linking audio pad: " + struct.getName());
-			// if (audioBin.getStaticPad("sink").getPeer() == null) {
-			// PadLinkReturn linked = pad.link(audioBin.getStaticPad("sink"));
-			// System.out.println("Decodebin linked " + linked);
-			// }
-			// } else if (struct.getName().startsWith("video/")) {
-			// System.out.println("Linking video pad: " + struct.getName());
-			// } else {
-			// System.out.println("Unknown pad [" + struct.getName() + "]");
-			// }
-			// }
 		});
 
 		if (!inputURLs.contains(url)) {
@@ -544,17 +451,16 @@ public class LiveMixer {
 
 		boolean playing = pipe.isPlaying();
 
-		// Pad adderSink = adder.getRequestPad("sink%d");create
-		// linkInput(adderSink);
-
 		pipe.add(input);
 		linked = input.link(adder);
-		System.out.println("new Input [" + input + "] linked with adder: " + linked);
+		debug("new Input [" + input + "] linked with adder: " + linked);
 
 		if (playing) {
-			System.out.println("Adder inputs: " + adder.getSinkPads());
+			debug("Adder inputs: " + adder.getSinkPads());
 			pipe.setState(State.PLAYING);
 		}
+
+		System.out.println("\n------------\nInput[" + i + "] " + url + " added.\n-------------\n");
 	}
 
 	public boolean removeInput(final String url) {
@@ -562,29 +468,27 @@ public class LiveMixer {
 		if (!inputElements.containsKey(url))
 			return false;
 
-		System.out.println("\n------------\nremoveInput: " + url + "\n-------------\n");
+		System.out.println("\n------------\nRemoving Input: " + url + "\n-------------\n");
 		removedInput = inputElements.get(url);
 
 		boolean playing = pipe.isPlaying();
 
 		Pad inputSrcPad = removedInput.getSrcPads().get(0);
-		// removedIdentity = inputSrcPad.getPeer().getParentElement();
 		Pad adderSinkPad = inputSrcPad.getPeer();
-		// pipe.setState(State.READY);
 
 		inputSrcPad.setBlocked(true);
 		removedInput.setState(State.NULL);
-		// boolean removed = adder.removePad(adderSinkPad);
-		boolean unlinked = inputSrcPad.unlink(adderSinkPad);
-		System.out.println("Input removed: " + removedInput);
+		inputSrcPad.unlink(adderSinkPad);
+		debug("Input removed: " + removedInput);
 		adder.releaseRequestPad(adderSinkPad);
 
 		inputElements.remove(url);
 		if (playing) {
-			System.out.println("Adder inputs: " + adder.getSinkPads());
+			debug("Adder inputs: " + adder.getSinkPads());
 			pipe.setState(State.PLAYING);
 		}
-		
+
+		System.out.println("\n------------\nInput " + url + " removed.\n-------------\n");
 		return true;
 	}
 
@@ -597,7 +501,7 @@ public class LiveMixer {
 			public void busMessage(Bus bus, Message msg) {
 				if (msg.getType() == MessageType.ELEMENT)
 					if (msg.getSource().getName().contains("Progress")) {
-						System.out.println("Message progres: " + msg.getStructure());
+						debug("Message progres: " + msg.getStructure());
 					}
 			}
 		});
@@ -605,17 +509,12 @@ public class LiveMixer {
 		STATE_CHANGED = new STATE_CHANGED() {
 			@Override
 			public void stateChanged(GstObject source, State old, State current, State pend) {
-				System.out.println(source + " new state: " + current);
+				debug(source + " new state: " + current);
 				if (source == pipe) {
-					System.out.println("Pipeline new state: " + current);
+					debug("Pipeline new state: " + current);
 					if (old == State.PLAYING && current != State.PLAYING) {
 						if (AUTO_RECOVERY) {
-							pipe.setState(State.NULL);
-							pipe = null;
-							inputElements.clear();
-							closeFFmpegProcess();
-							createPipeline();
-							playThread();
+							recreatePipeline();
 						}
 					}
 				}
@@ -625,7 +524,7 @@ public class LiveMixer {
 
 		bus.connect(new Bus.ERROR() {
 			public void errorMessage(GstObject source, int code, String message) {
-				System.out.println("Error: code=" + code + " message=" + message);
+				debug("Error: code=" + code + " message=" + message);
 				if (code == 1) {
 					pipe.setState(State.NULL);
 				}
@@ -633,19 +532,9 @@ public class LiveMixer {
 		});
 		bus.connect(new Bus.EOS() {
 			public void endOfStream(GstObject source) {
-				System.out.println("EOS");
+				debug("EOS");
 				if (AUTO_RECOVERY) {
-					pipe.setState(State.NULL);
-					pipe = null;
-					createPipeline();
-					closeFFmpegProcess();
-					startFFmpegProcess();
-					playThread();
-					// writer.close();
-					// if (outContainer.writeTrailer() < 0)
-					// throw new RuntimeException();
-					// outContainer.close();
-					// System.exit(0);
+					recreatePipeline();
 				}
 			}
 
@@ -654,8 +543,7 @@ public class LiveMixer {
 
 	public void setVolume(String url, float volume) {
 		volumeElements.get(url).set("volume", volume);
-		if(DEBUG)
-			System.out.println("Setting volume of "+volumeElements.get(url).getName()+":" + volume);
+		debug("Setting volume of " + volumeElements.get(url).getName() + ": " + volume);
 	}
 
 	/**
@@ -678,7 +566,9 @@ public class LiveMixer {
 		Thread play = new Thread(new Runnable() {
 			@Override
 			public void run() {
+				RUN = true;
 				pipe.play();
+				System.out.println("\n------------\nPipeline " + name + " started.\n-------------\n");
 			}
 		});
 		play.start();
@@ -691,14 +581,6 @@ public class LiveMixer {
 	public void closeFFmpegProcess() {
 		if (ffmpegProcess != null) {
 			try {
-				try {
-					ffmpegProcess.getInputStream().close();
-				} catch (IOException e) {
-				}
-				try {
-					ffmpegProcess.getOutputStream().close();
-				} catch (IOException e) {
-				}
 				ffmpegProcess.destroy();
 				ffmpegProcess = null;
 				ffmpegThread = null;
@@ -716,7 +598,7 @@ public class LiveMixer {
 		pipe.remove(removedIdentity);
 		removedInput.setState(State.NULL);
 		removedIdentity.setState(State.NULL);
-		System.out.println("padRemoved: " + removedInput);
+		debug("padRemoved: " + removedInput);
 		removedInput = null;
 		removedInput = null;
 		System.gc();
@@ -730,40 +612,15 @@ public class LiveMixer {
 		Element identity = ElementFactory.make("identity", "identity" + INDEX);
 		identity.set("sync", true);
 		identity.set("single-segment", true);
-		// identity.set("silent", false);
-		// Element mux = ElementFactory.make("flvmux", "mux-timestamp" + INDEX);
-		// Element enc = ElementFactory.make("lamemp3enc", "enc-timestamp" +
-		// INDEX);
-		// Element demux = ElementFactory.make("flvdemux", "demux-timestamp" +
-		// INDEX);
-		// Element dec = ElementFactory.make("flump3dec", "dec-timestamp" +
-		// INDEX);
-		//
-		// // identity.set("silent", false);
-		// pipe.addMany(identity, enc, mux, demux, dec);
-		//
-		// identity.setState(State.PAUSED);
-		// mux.setState(State.PAUSED);
-		// enc.setState(State.PAUSED);
-		// demux.setState(State.PAUSED);
-		// dec.setState(State.PAUSED);
-		//
 		pipe.addMany(newInput, identity);
 		PadLinkReturn linked = newInput.getSrcPads().get(0).link(identity.getSinkPads().get(0));
-		System.out.println("new input linked: " + linked);
-		//
-		// boolean l = Element.linkMany(identity, enc, mux, demux, dec);
-		// System.out.println("mux demux linked: "+l);
-		//
-		// PadLinkReturn linked2 = dec.getSrcPads().get(0).link(pad);
-		// System.out.println("new dec linked: " + linked2);
+		debug("new input linked: " + linked);
 		if (pipe.isPlaying()) {
 			State state = State.PAUSED;
 			newInput.setState(state);
-			// pipe.setState(state);
 		}
 		PadLinkReturn linked3 = identity.getSrcPads().get(0).link(pad);
-		System.out.println("new identity linked: " + linked3);
+		debug("new identity linked: " + linked3);
 	}
 
 	protected static short[] byte2short(byte[] byteArray) {
@@ -796,5 +653,36 @@ public class LiveMixer {
 
 	public Pipeline getPipe() {
 		return pipe;
+	}
+
+	/**
+	 * 
+	 */
+	protected void recreatePipeline() {
+		System.out.println("\n------------\nrecreating Pipeline: " + name + "\n-------------\n");
+		try {
+			pipe.setState(State.NULL);
+			pipe = null;
+			inputElements.clear();
+			closeFFmpegProcess();
+			createPipeline();
+			playThread();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void shutdown() {
+		AUTO_RECOVERY = false;
+		RUN = false;
+		try {
+			closeFFmpegProcess();
+			inputElements.clear();
+			volumeElements.clear();
+			pipe.setState(State.NULL);
+			pipe = null;
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 }
