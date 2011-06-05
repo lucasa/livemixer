@@ -1,0 +1,4 @@
+LiveMixer is GPLv2+ gstreamer-java command-line program that mix together multiples network audio streams.
+It can read any source format supported by gstreamer, and the output stream format is RTMP. But the output can be easily adapted to handle any format and codec supported  by FFmpeg.
+
+Contacts: lucasa at softwarelivre dot org
